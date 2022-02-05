@@ -1,0 +1,549 @@
+openapi: 3.0.3
+info:
+  title: Core API
+  version: 0.1.0
+  description: REST API for payments
+paths:
+  /merchant:
+    get:
+      summary: Gets all merchants
+      description: Returns list of all merchants for the client.
+      tags:
+        - Merchant
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantList'
+  /merchant/{id}:
+    get:
+      summary: Get merchant details by id
+      description: Returns a single merchant by id.
+      tags:
+        - Merchant
+      parameters:
+        - name: id
+          in: path
+          description: Id of Merchant.
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+  /rfp:
+    post:
+      summary: Create request for RFP
+      description: Returns a single RFP by id.
+      tags:
+        - RFP - Request for Payment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RfpRequest'
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RfpResponse'
+  /rfp/{id}:
+    get:
+      summary: Get request for RFP by id
+      description: Returns a single payment request by id.
+      tags:
+        - RFP - Request for Payment
+      parameters:
+        - name: id
+          in: path
+          description: Id of RFP.
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RfpResponse'
+    put:
+      summary: Update request for RFP by id
+      description: Updates an existing RFP by id. RFP can only be updated if it is in PENDING state.
+      tags:
+        - RFP - Request for Payment
+      parameters:
+        - name: id
+          in: path
+          description: Id of RFP.
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RfpResponse'
+  /rfp/{id}/cancel:
+    delete:
+      summary: Cancel RFP by id.
+      description: Cancel operation deletes RFP. Delete is a soft delete, RFP is archived. Cancelled RFP Icannot be restored.
+      tags:
+        - RFP - Request for Payment
+      parameters:
+        - name: id
+          in: path
+          description: Id of RFP.
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Successful operation.
+  /payment:
+    post:
+      summary: Create payment intent.
+      description: Attempts to make payment. Attempt result depends on payment process.
+      tags:
+        - Payment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentIntentRequest'
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntentRequest'
+components:
+  schemas:
+    Address:
+      type: object
+      properties:
+        description:
+          type: string
+          example: home
+        street:
+          type: string
+          example: 123 Main street
+        street2:
+          type: string
+          example: unit 2
+        city:
+          type: string
+          example: New York City
+        country:
+          type: string
+          example: USA
+        region:
+          type: string
+          description: State or region in country.
+          example: New York
+        zipcode:
+          type: string
+          description: Area code for address.
+          example: "01010, BA94 54"
+      required:
+        - street
+        - city
+        - zipcode
+        - country
+    ApiKey:
+      type: object
+      description: API key pair to access the PSP (payment service provider).
+      properties:
+        id:
+          type: string
+          description: Id of API key.
+        key:
+          type: string
+          description: API key.
+        secret:
+          type: string
+          description: API secret.
+        created_at:
+          type: integer
+          example: 1635214880
+          description: Unix epoch time (UTC) of when api key is created.
+        environment:
+          type: string
+          description: Environment in which API key pair is valid.
+          example: TEST
+          enum:
+            - TEST
+            - QA
+            - PRODUCTION
+    CCPayment:
+      type: object
+      description: Credit Card payment
+      properties:
+        payment_method:
+          type: string
+          example: CC
+        cc_name:
+          type: string
+          example: VISA
+        cc_number:
+          type: string
+          example: 4111111111111111
+        cc_month:
+          type: integer
+          example: 01
+        cc_year:
+          type: integer
+          example: 2020
+        cc_cvc:
+          type: integer
+          example: 334
+    Consumer:
+      type: object
+      description: Merchant customer
+      properties:
+        first_name:
+          type: string
+        middle_name:
+          type: string
+        last_name:
+          type: string
+        contact_info:
+          $ref: '#/components/schemas/ContactInfo'
+    ContactInfo:
+      type: object
+      description: Contact info
+      properties:
+        emails:
+          type: array
+          items:
+            $ref: '#/components/schemas/Email'
+        sms_numbers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Phone'
+        phone_numbers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Phone'
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+      required:
+        - email
+    Currency:
+      type: object
+      properties:
+        currency_type:
+          type: string
+          description: Type of currency like FIAT or Crypto. Only FIAT is currently supported.
+          enum:
+            - FIAT
+          default: FIAT
+        currency_code:
+          type: string
+          description: ISO-4217 code of the country code.
+          example: USD, EUR
+        amount:
+          type: number
+          description: Amount of money in the smallest currency unit. (e.g., 100 cents to charge $1.00 or 100 to charge ¥100, a zero-decimal currency).
+          example: 250
+      required:
+        - currency_type
+        - currency_code
+        - amount
+    Email:
+      type: object
+      properties:
+        description:
+          type: string
+          example: personal
+        email_address:
+          type: string
+          example: homer@simpsons.com
+      required:
+        - email_address
+    Event:
+      type: object
+      description: Activity representing an important fact.
+      properties:
+        timstamp:
+          type: integer
+          description: Unix epoch time (UTC) stamp of activity.
+        event_name:
+          type: string
+          description: "for example: RFP_CREATED, PAYMENT_ATTEMPT_SUCCESSFUL"
+        description:
+          type: string
+          description: "for example: Request for payment created, payment attempt successful."
+    Invoice:
+      type: object
+      description: Itemized list of transactions between merchant and consumer.
+      properties:
+        invoice_id:
+          type: string
+          description: Invoice id is generated by the merchant.
+          example: "ssd-133-233444"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItem'
+      required:
+        - invoice_id
+    InvoiceItem:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Currency'
+    Merchant:
+      type: object
+      description: Merchant object.
+      properties:
+        id:
+          type: string
+          description: Id of merchant.
+        address:
+          $ref: '#/components/schemas/Address'
+        name:
+          type: string
+          description: Legal business name of merchant.
+          example: Simpsons, Inc.
+        providers:
+          type: array
+          description: List of PSPs (payment service provider) configured for the merchant.
+          items:
+            $ref: '#/components/schemas/Provider'
+    MerchantList:
+      type: object
+      description: List of merchants.
+      properties:
+        count:
+          type: integer
+          description: Count of merchants.
+        merchants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Merchant'
+    MetaData:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      required:
+        - key
+        - value
+    Payment:
+      type: object
+      description: Payment object
+      properties:
+        payment_id:
+          type: string
+          description: Unique id for a payment.
+          example: 123-iidllld
+        cancelled_at:
+          type: string
+          description: Payment cancellation date time in ISO 8601 format.
+          example: "2018-12-10T13:45:00.000Z"
+        cancel_reason:
+          type: string
+          example: Customer reason
+        created_at:
+          type: string
+          description: Payment created date time in ISO 8601 format.
+          example: "2018-12-10T13:45:00.000Z"
+        currency:
+          $ref: '#/components/schemas/Currency'
+        customer:
+          $ref: '#/components/schemas/Consumer'
+        invoice:
+          $ref: '#/components/schemas/Invoice'
+        meta_data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaData'
+        notes:
+          type: string
+          description: Short note about the payment.
+        payment_type:
+          type: string
+          example: 'CC'
+        payment_method:
+          oneOf:
+            - $ref: '#/components/schemas/CCPayment'
+        total:
+          type: integer
+          example: 200
+    PaymentIntentRequest:
+      type: object
+      description: Payment intent object for initiating payment.
+      properties:
+        intent_id:
+          type: string
+          description: Client generated unique intent id.
+        amount:
+          $ref: '#/components/schemas/Currency'
+        description:
+          type: string
+          description: Brief description of payment.
+        merchant_id:
+          type: string
+          description: Payment recepient merchant id.
+        meta_data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaData'
+        payment_method:
+          oneOf:
+            - $ref: '#/components/schemas/CCPayment'
+        provider_id:
+          type: string
+          description: Unique id of the psp (payment service provider).
+        receipt_email:
+          $ref: '#/components/schemas/Email'
+        reference:
+          type: object
+          description: Information about what this payment is in reference to. One of the options is required to be populated.
+          properties:
+            other:
+              type: string
+              description: Brief explanation of what this payment is in reference to.
+            rfp_id:
+              type: string
+              description: If payment is for RFP, rfp_id should be supplied.
+        timstamp:
+          type: integer
+          description: Unix epoch time (UTC) stamp of activity.
+      required:
+        - intent_id
+        - amount
+        - consumer
+        - merchant_id
+        - provider_id
+        - reference
+        - timstamp
+    Phone:
+      type: object
+      properties:
+        country_code:
+          type: number
+          example: 1
+        phone_number:
+          type: number
+          example: 2013334444
+      required:
+        - country_code
+        - phone_number
+    Provider:
+      type: object
+      description: Payment service provider. A financial institution like a bank or a CC company.
+      properties:
+        id:
+          type: string
+          example: 2234-abn
+          description: Unique id of the PSP.
+        name:
+          type: string
+          example: Stripe
+          description: Name of the PSP.
+        api_keys:
+          type: array
+          description: List of API keys.
+          items:
+            $ref: '#/components/schemas/ApiKey'
+      required:
+        - id
+    RfpRequest:
+      type: object
+      description: Request for RFP.
+      properties:
+        request_id:
+          type: string
+          description: Unique id generated by the client for RFP.
+          example: 123-iidllld
+        description:
+          type: string
+          description: Optional description of the RFP.
+          example: Additional charge for car rental
+        expires_at:
+          type: integer
+          example: 1635214880
+          description: Unix epoch time (UTC) of when RFP expires. If left blank, RFP does not expire.
+        hash:
+          type: string
+          description: Calculated hash (signature) of the RFP. See api docs for details.
+        installments:
+          type: integer
+          description: Number of installments to pay the requested total amount. Payment in full means 1 installment.
+          default: 1
+          example: 1
+        invoice:
+          $ref: '#/components/schemas/Invoice'
+        merchant_id:
+          type: string
+          description: Merchant id sending the RFP
+        meta_data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaData'
+        provider_list:
+          type: array
+          description: List of provider ids to enable payments for this RFP. If left blank, all confgiured providers for merchant will be enabled for RFP payments.
+          items:
+            type: string
+            description: Payment provider id.
+        recipient:
+          $ref: '#/components/schemas/Consumer'
+        timestamp:
+          type: integer
+          example: 1635214880
+          description: Unix epoch time (UTC) of when payment request is created.
+        total:
+          $ref: '#/components/schemas/Currency'
+      required:
+        - merchant_id
+        - request_id
+        - recipient
+        - timestamp
+        - total
+    RfpResponse:
+      type: object
+      description: Response object for RFP.
+      properties:
+        id:
+          type: string
+          description: Server side generated id for the RFP.
+        status:
+          type: string
+          description: Status of RFP. Default state of a new RFP is PENDING.
+          enum:
+            - PENDING
+            - CANCELLED
+            - EXPIRED
+            - PAID
+            - FAILED
+        status_code:
+          type: integer
+          description: Status code of RFP.
+        events:
+          type: array
+          description: List of events as activities related to the RFP.
+          items:
+            $ref: '#/components/schemas/Event'
+        payment_request:
+          $ref: '#/components/schemas/RfpRequest'
+

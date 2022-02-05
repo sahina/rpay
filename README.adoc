@@ -1,0 +1,134 @@
+= rpay
+
+Rust based payment api.
+
+**THIS REPO IS IN EARLY STAGE DEVELOPMENT!!**
+
+== Core APIs
+
+Version 0.1
+
+- Payment Request
+* Create payment request
+* Get payment request by id
+* Cancel payment request
+- Payment
+* Create (make) payment
+* Retry payment
+* Refund payment
+* Get payment by id
+- Refund
+* Refund payment by payment id
+
+== Development
+
+Create `.env` file with these env variables.
+
+[source]
+----
+PORT
+NATS_URL
+----
+
+__**Docker compose based environment is not tested.
+Ignore until setup is verified!**__
+
+You can bring up docker based dev environment including nats cluster:
+
+[source]
+----
+$ docker-compose -f docker-compose.yml up
+----
+
+Bring down the cluster
+
+[source]
+----
+$ docker-compose -f docker-compose.yml down
+----
+
+=== Docker
+
+Build docker image and run using .env file for environment variables.
+
+[source,shell script]
+----
+$ docker build --progress=plain -t rpay .
+$ docker run --env-file .env -p 9000:5000 rpay
+----
+
+=== NATS Cluster
+
+You don't have to bring up NATS cluster on its own.
+Nats cluster nodes are included in the `docker-compose.yml` file.
+
+Bring up NATS (https://nats.io) cluster:
+
+[source]
+----
+$ docker-compose -f docker-compose-nats.yml up
+Recreating docs_nats_1   ... done
+Recreating docs_nats-2_1 ... done
+Recreating docs_nats-1_1 ... done
+Attaching to docs_nats-2_1, docs_nats_1, docs_nats-1_1
+nats-2_1  | [1] 2019/10/19 06:41:26.064501 [INF] Starting nats-server version 2.1.0
+nats-2_1  | [1] 2019/10/19 06:41:26.064783 [INF] Git commit [1cc5ae0]
+nats_1    | [1] 2019/10/19 06:41:26.359150 [INF] Starting nats-server version 2.1.0
+nats_1    | [1] 2019/10/19 06:41:26.359365 [INF] Git commit [1cc5ae0]
+nats_1    | [1] 2019/10/19 06:41:26.360540 [INF] Starting http monitor on 0.0.0.0:8222
+nats-1_1  | [1] 2019/10/19 06:41:26.578773 [INF] 172.18.0.2:6222 - rid:1 - Route connection created
+nats_1    | [1] 2019/10/19 06:41:27.138198 [INF] 172.18.0.4:38900 - rid:2 - Route connection created
+nats-2_1  | [1] 2019/10/19 06:41:27.147816 [INF] 172.18.0.2:6222 - rid:1 - Route connection created
+nats-2_1  | [1] 2019/10/19 06:41:27.150367 [INF] 172.18.0.3:60702 - rid:2 - Route connection created
+nats-1_1  | [1] 2019/10/19 06:41:27.153078 [INF] 172.18.0.4:6222 - rid:3 - Route connection created
+----
+
+Test the cluster:
+
+[source]
+----
+$ docker run --network nats --rm -it synadia/nats-box
+~ # nats sub -s nats://nats:4222 hello &
+Listening on [hello]
+
+~ # nats pub -s "nats://nats-1:4222" hello first
+~ # nats pub -s "nats://nats-2:4222" hello second
+----
+
+Also stopping the seed node to which the subscription was done, should trigger an automatic failover to the other nodes:
+
+[source]
+----
+$ docker stop nats
+
+...
+Disconnected: will attempt reconnects for 10m
+Reconnected [nats://172.17.0.4:4222]
+----
+
+Publishing again will continue to work after the reconnection:
+
+[source]
+----
+~ # nats-pub -s "nats://nats-1:4222" hello again
+~ # nats-pub -s "nats://nats-2:4222" hello again
+----
+
+Bring down the cluster
+
+[source]
+----
+$ docker-compose -f docker-compose-nats.yml down
+----
+
+== Build
+
+`Task` is alternative to Make. `Taskfile.yml`  has build tasks.
+
+Ref: https://taskfile.dev
+
+[source,shell script]
+----
+$ task --list
+$ task build
+----

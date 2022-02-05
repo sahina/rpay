@@ -1,0 +1,22 @@
+[package]
+name = "rpay_psp"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rpay_psp"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1.0.51"
+base64 = "0.13.0"
+config = "0.11"
+rpay_core = { path = "../rpay-core" }
+reqwest = { version = "0.11", features = ["json"] }
+rusty-money = "0.4.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+insta = "1.8.0" # snapshot testing

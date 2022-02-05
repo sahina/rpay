@@ -1,0 +1,19 @@
+version: "3"
+
+tasks:
+  default:
+    deps:
+      - build
+  build:
+    desc: Build cargo workspace
+    cmds:
+      - cargo build
+  test:
+    desc: Run tests in all crates
+    cmds:
+      - cargo test --all
+env:
+  COLOR: auto
+  CARGO: cargo --color $(COLOR)
+
+dotenv: [ '.env' ]

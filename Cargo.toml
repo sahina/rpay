@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "rpay-api",
+    "rpay-core",
+    "rpay-psp",
+    "rpay-psp-stripe",
+]

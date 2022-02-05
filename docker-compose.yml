@@ -1,0 +1,88 @@
+version: '3.8'
+services:
+  rpay-service:
+    image: sahina/rpay:rpay-service
+    container_name: rpay-service
+    restart: always
+    depends_on:
+      - rpay-db
+    environment:
+      DATABASE_URL: postgres://postgres:$RPAY_DB_PASSWORD@rpay-db/payment_requests
+      JWT_SECRET_KEY: $JWT_SECRET_KEY
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8001/" ]
+      interval: 1m
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    ports:
+      - "8001:3000"
+    networks: [ "nats" ]
+
+  rpay-db:
+    image: postgres:13.2-alpine
+    container_name: rpay-db
+    restart: always
+    environment:
+      POSTGRES_DB: rpay
+      POSTGRES_PASSWORD: $RPAY_DB_PASSWORD
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1m
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks: [ "nats" ]
+
+  auth-service:
+    image: sahina/rpay:auth-service
+    container_name: auth-service
+    restart: always
+    depends_on:
+      - users-db
+    environment:
+      DATABASE_URL: postgres://postgres:$USERS_DB_PASSWORD@users-db/users
+      PASSWORD_SECRET_KEY: $PASSWORD_SECRET_KEY
+      JWT_SECRET_KEY: $JWT_SECRET_KEY
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8003/" ]
+      interval: 1m
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    ports:
+      - "8003:8003"
+    networks: [ "nats" ]
+  users-db:
+    image: postgres:13.2-alpine
+    container_name: users-db
+    restart: always
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_PASSWORD: $USERS_DB_PASSWORD
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1m
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks: [ "nats" ]
+  nats:
+    image: nats
+    ports:
+      - "8222:8222"
+    networks: [ "nats" ]
+  nats-1:
+    image: nats
+    command: "--cluster nats://0.0.0.0:6222 --routes=nats://ruser:T0pS3cr3t@nats:6222"
+    networks: [ "nats" ]
+    depends_on: [ "nats" ]
+  nats-2:
+    image: nats
+    command: "--cluster nats://0.0.0.0:6222 --routes=nats://ruser:T0pS3cr3t@nats:6222"
+    networks: [ "nats" ]
+    depends_on: [ "nats" ]
+
+networks:
+  nats:
+    name: nats
